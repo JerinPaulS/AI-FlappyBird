@@ -4,11 +4,18 @@ import time
 import os
 import random
 pygame.font.init()
+from Plotter import plot
 
 WIN_WIDTH = 500
 WIN_HEIGHT = 800
 
 GEN = 0
+
+plot_scores = []
+plot_mean_scores = []
+total_score = 0
+record = 0
+score = 0
 
 BIRD_IMGS = [pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "bird1.png"))), pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "bird2.png"))), pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "bird3.png")))]
 PIPE_IMG = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "pipe.png")))
@@ -159,7 +166,7 @@ def draw_window(win, birds, pipes, base, score, gen):
     pygame.display.update()
 
 def main(genomes, config):
-    global GEN
+    global GEN, plot_scores, plot_mean_scores, total_score, score
     GEN += 1
     nets = []
     ge = []
@@ -171,6 +178,11 @@ def main(genomes, config):
         birds.append(Bird(230, 350))
         g.fitness = 0
         ge.append(g)
+
+    plot_scores.append(score)
+    total_score += score
+    plot_mean_scores.append(total_score / GEN)
+    plot(plot_scores, plot_mean_scores)
 
     base = Base(730)
     pipes = [Pipe(700)]
