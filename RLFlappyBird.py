@@ -146,74 +146,86 @@ class Base:
         win.blit(self.IMG, (self.x1, self.y))
         win.blit(self.IMG, (self.x2, self.y))
 
-def draw_window(win, bird, pipes, base, score):
-    win.blit(BG_IMG, (0, 0))
-    for pipe in pipes:
-        pipe.draw(win)
-    text = STAT_FONT.render("Score: " + str(score), 1, (255, 255, 255))
-    win.blit(text, (10, 10))
-    base.draw(win)
-    bird.draw(win)
-    pygame.display.update()
+class Game:
 
-def main():
-    bird = Bird(230, 350)
-    base = Base(730)
-    pipes = [Pipe(700)]
-    win = pygame.display.set_mode((WIN_WIDTH, WIN_HEIGHT))
-    run = True
-    clock = pygame.time.Clock()
-    score = 0
+    def __init__(self):
+        self.bird = Bird(230, 350)
+        self.base = Base(730)
+        self.pipes = [Pipe(700)]
+        self.win = pygame.display.set_mode((WIN_WIDTH, WIN_HEIGHT))
+        self.run = True
+        self.clock = pygame.time.Clock()
+        self.score = 0
 
-    while run:
-        clock.tick(30)
-        bird.move()
+    def reset(self):
+        self.bird = Bird(230, 350)
+        self.base = Base(730)
+        self.pipes = [Pipe(700)]
+        self.run = True
+        self.score = 0
+
+    def draw_window(self):
+        self.win.blit(BG_IMG, (0, 0))
+        for pipe in self.pipes:
+            pipe.draw(self.win)
+        text = STAT_FONT.render("Score: " + str(self.score), 1, (255, 255, 255))
+        self.win.blit(text, (10, 10))
+        self.base.draw(self.win)
+        self.bird.draw(self.win)
+        pygame.display.update()
+
+    def main(self, action):
+
+        #while self.run:
+        reward = 0
+        self.clock.tick(30)
+        self.bird.move()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                run = False
+                self.run = False
                 pygame.quit()
                 quit()
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE:
-                    bird.jump()
+        if action[0]:
+            self.bird.jump()
+        if action[1]:
+            self.bird.move()
 
         pipe_ind = 0
-        if len(pipes) > 1 and bird.x > pipes[0].x + pipes[0].PIPE_TOP.get_width():
+        if len(self.pipes) > 1 and self.bird.x > self.pipes[0].x + self.pipes[0].PIPE_TOP.get_width():
             pipe_ind = 1
 
         rem = []
         add_pipe = False
-        for pipe in pipes:
-            if pipe.collide(bird):
-                #print((pipes[0].bottom - 200, pipes[0].bottom - 40), (bird.x, bird.y))
-                return(True, score)
+        for pipe in self.pipes:
+            if pipe.collide(self.bird):
+                reward = -40
+                return reward, False, self.score
 
-            if not pipe.passed and pipe.x < bird.x:
+            if not pipe.passed and pipe.x < self.bird.x:
                 pipe.passed = True
                 add_pipe = True
+
+            if pipe.top + pipe.height < self.bird.y < pipe.bottom - pipe.height:
+                reward += 10
+            else:
+                reward -= 20
 
             if pipe.x + pipe.PIPE_TOP.get_width() < 0:
                 rem.append(pipe)
             pipe.move()
 
         if add_pipe:
-            score += 1
-            pipes.append(Pipe(600))
+            self.score += 1
+            reward = 10
+            self.pipes.append(Pipe(600))
 
         for r in rem:
-            pipes.remove(r)
+            self.pipes.remove(r)
 
-        if bird.y + bird.img.get_height() >= 730 or bird.y < 0:
-            return(True, score)
+        if self.bird.y + self.bird.img.get_height() >= 730 or self.bird.y < 0:
+            reward = -10
+            return reward, False, self.score
 
-        base.move()
-        draw_window(win, bird, pipes, base, score)
-
-if __name__ == "__main__":
-    while True:
-        game_over, score = main()
-        if game_over == True:
-            break
-
-    print("score = " + str(score))
-    pygame.quit()
+        self.base.move()
+        self.draw_window()
+        return reward, True, self.score
